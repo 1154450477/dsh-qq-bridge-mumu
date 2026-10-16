@@ -1,6 +1,6 @@
 {
   "name": "dsh-qq-bridge",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "通到 QQ：大肥鱼在 DSH 里说完话，自动发到 QQ（先做 DSH→QQ 这半，走 NapCat OneBot HTTP，不经过 Estrella）。",
   "license": "MIT",
   "type": "module",

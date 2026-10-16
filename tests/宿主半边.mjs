@@ -27,14 +27,26 @@ writeFileSync(
 let 挂了 = 0
 const 报 = (标签, 过, 详情) => { if (!过) 挂了++; console.log(`${过 ? 'PASS' : 'FAIL'}  ${标签}${详情 ? '  :: ' + 详情 : ''}`) }
 
-// 假 fetch：记下每次 POST，回一个「发送成功」
+// 假 fetch：记下每次 POST，回一个「发送成功」；拉历史时给一条她的新消息
 const 发了 = []
+let 私聊消息文本 = '宝宝'
+let 私聊消息时间 = 9999999999
+let 私聊消息id = 9000
 globalThis.fetch = async (url, 选项) => {
   const 体 = JSON.parse((选项 && 选项.body) || '{}')
-  if (String(url).includes('get_login_info')) {
+  const u = String(url)
+  if (u.includes('get_login_info')) {
     return { json: async () => ({ status: 'ok', retcode: 0, data: { user_id: 1265214128, nickname: '大肥鱼' } }) }
   }
-  发了.push({ url: String(url), 体 })
+  if (u.includes('get_friend_msg_history')) {
+    return {
+      json: async () => ({
+        status: 'ok', retcode: 0,
+        data: { messages: [{ user_id: 123, time: 私聊消息时间, message_id: 私聊消息id, message_type: 'private', message: [{ type: 'text', data: { text: 私聊消息文本 } }] }] },
+      }),
+    }
+  }
+  发了.push({ url: u, 体 })
   return { json: async () => ({ status: 'ok', retcode: 0, data: { message_id: 1 } }) }
 }
 
@@ -42,7 +54,7 @@ const 模 = await import(new URL('../lib/host.js', import.meta.url).href + '?v='
 
 // ---------- 纯函数 ----------
 报('名字导出', 模.name === 'qq-bridge', 模.name)
-报('inject = agents + sessions + sessionTitle + webServer', Array.isArray(模.inject) && 模.inject.join() === 'agents,sessions,sessionTitle,webServer')
+报('inject = agents + sessions + sessionTitle + webServer + timer', Array.isArray(模.inject) && 模.inject.join() === 'agents,sessions,sessionTitle,webServer,timer')
 
 const 块 = (type, text) => ({ type, text })
 const 正文 = 模.提取正文({ content: [块('reasoning', '想一下'), 块('text', '第一条\n第二条'), 块('image', ''), 块('text', '第三条')] })
@@ -53,6 +65,7 @@ const 正文 = 模.提取正文({ content: [块('reasoning', '想一下'), 块('
 const 监听 = []
 const 路由 = new Map()
 const 转进的 = []
+let 轮询回调 = null
 const 假agent = { followup: (m) => 转进的.push(m), session: { id: 'session-X' } }
 const ctx = {
   on: (名字, cb) => { if (名字 === 'session/event') 监听.push(cb); return () => {} },
@@ -61,6 +74,7 @@ const ctx = {
   logger: { info: () => {} },
   agents: { get: (id) => (String(id) === 'session-X' ? 假agent : undefined) },
   sessions: { flush: async () => {} },
+  interval: (fn) => { 轮询回调 = fn; return () => {} },
   get: () => undefined,
 }
 
@@ -181,6 +195,36 @@ writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
 }, null, 2), 'utf8')
 收到 = await 收({ text: '在吗' })
 报('/receive：目标会话没活着 → 拒绝', 收到 && 收到.ok === false && String(收到.说).includes('没活着'), JSON.stringify(收到))
+
+// ⑬ 轮询收消息（QQ → DSH 这半的正式入口，不赖 BOT）
+writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
+  总开关: true, 试运行: false, 目标会话: 'session-X', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
+}, null, 2), 'utf8')
+const 之前转 = 转进的.length
+私聊消息文本 = '宝宝你在吗'
+私聊消息id = 9001
+私聊消息时间 = Math.floor(Date.now() / 1000) + 100
+await 轮询回调()
+await new Promise((r) => setTimeout(r, 20))
+报('轮询收消息 → 她新发的私聊被 followup 进 DSH', 转进的.length === 之前转 + 1 && JSON.stringify(转进的.at(-1).content[0].text).includes('宝宝你在吗'), JSON.stringify(转进的.at(-1)))
+// 再跑一次同一条：不该重复转
+私聊消息文本 = '宝宝你在吗'
+私聊消息id = 9001
+私聊消息时间 = Math.floor(Date.now() / 1000) + 101
+await 轮询回调()
+await new Promise((r) => setTimeout(r, 20))
+报('轮询：同一条消息不重复转', 转进的.length === 之前转 + 1, '转进条数=' + 转进的.length)
+
+// ⑭ 轮询：总开关关 → 不转
+writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
+  总开关: false, 试运行: false, 目标会话: 'session-X', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
+}, null, 2), 'utf8')
+私聊消息文本 = '还开着吗'
+私聊消息id = 9002
+私聊消息时间 = Math.floor(Date.now() / 1000) + 120
+await 轮询回调()
+await new Promise((r) => setTimeout(r, 20))
+报('轮询：总开关关 → 不转', 转进的.length === 之前转 + 1, '转进条数=' + 转进的.length)
 
 rmSync(家, { recursive: true, force: true })
 console.log(`\n${挂了 === 0 ? '全部通过 ✅' : `有 ${挂了} 条没过 ❌`}`)
