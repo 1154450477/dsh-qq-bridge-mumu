@@ -42,7 +42,7 @@ const 模 = await import(new URL('../lib/host.js', import.meta.url).href + '?v='
 
 // ---------- 纯函数 ----------
 报('名字导出', 模.name === 'qq-bridge', 模.name)
-报('inject 只要 webServer', Array.isArray(模.inject) && 模.inject.join() === 'webServer')
+报('inject = sessions + sessionTitle + webServer', Array.isArray(模.inject) && 模.inject.join() === 'sessions,sessionTitle,webServer')
 
 const 块 = (type, text) => ({ type, text })
 const 正文 = 模.提取正文({ content: [块('reasoning', '想一下'), 块('text', '第一条\n第二条'), 块('image', ''), 块('text', '第三条')] })
