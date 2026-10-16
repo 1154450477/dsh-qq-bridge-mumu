@@ -2,8 +2,9 @@
 
 让 DSH 里的**大肥鱼**和 QQ 连起来：她在 DSH 里说完话，自动发到 QQ。
 
-> ⚠ 现在只有**上半场**：`DSH → QQ`（大肥鱼说话 → 发到 QQ 私聊/群）。
-> 反过来（`QQ → DSH`，你在 QQ 里回、转进 DSH 让她接着想）是下一半，还没做。
+> 现在两半都做出来了：
+> - `DSH → QQ`：大肥鱼说话 → 发到 QQ（**本插件自己就够**）。
+> - `QQ → DSH`：你在 QQ 里回 → 转进 DSH 让她接着想（本插件的 `/receive` + **Estrella 那边开个开关**，见文末「怎么把 BOT 接上」）。
 
 ## 现在的行为
 
@@ -39,6 +40,27 @@
 node tests/宿主半边.mjs
 node tests/网页半边.mjs
 ```
+
+## 怎么把 BOT 接上（QQ → DSH 这半）
+
+这一半要动 **Estrella（BOT）** 一个开关（在它的 `config.json` 里，`custom.qqBridge`，默认**全关**，不动就完全不影响它）：
+
+```jsonc
+"qqBridge": {
+  "enabled": true,                    // 总开关
+  "dshUrl": "http://127.0.0.1:19387", // DSH 地址
+  "herQQ": "3274796953",              // 只转发她的 QQ 号
+  "private": true,                    // 私聊这条桥
+  "group": false,                     // 群这条桥
+  "groupId": ""                       // 群号（group=true 时填）
+}
+```
+
+改完**重启 BOT**。之后：
+
+- 她在桥接的私聊/群里发一句 → BOT **转发给 DSH 并闭嘴**（不再自己动脑回）。
+- DSH 的大肥鱼接话、回完 → 这句再经**本插件的上半场**发回 QQ。
+- 桥连不上（DSH 没开 / 没接）→ BOT **照常自己回**（桥断 ≠ 鱼哑）。
 
 ## 改动记录
 
