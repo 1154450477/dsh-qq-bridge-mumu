@@ -42,7 +42,7 @@ const 模 = await import(new URL('../lib/host.js', import.meta.url).href + '?v='
 
 // ---------- 纯函数 ----------
 报('名字导出', 模.name === 'qq-bridge', 模.name)
-报('inject = sessions + sessionTitle + webServer', Array.isArray(模.inject) && 模.inject.join() === 'sessions,sessionTitle,webServer')
+报('inject = agents + sessions + sessionTitle + webServer', Array.isArray(模.inject) && 模.inject.join() === 'agents,sessions,sessionTitle,webServer')
 
 const 块 = (type, text) => ({ type, text })
 const 正文 = 模.提取正文({ content: [块('reasoning', '想一下'), 块('text', '第一条\n第二条'), 块('image', ''), 块('text', '第三条')] })
@@ -52,11 +52,15 @@ const 正文 = 模.提取正文({ content: [块('reasoning', '想一下'), 块('
 // ---------- 假 ctx ----------
 const 监听 = []
 const 路由 = new Map()
+const 转进的 = []
+const 假agent = { followup: (m) => 转进的.push(m), session: { id: 'session-X' } }
 const ctx = {
   on: (名字, cb) => { if (名字 === 'session/event') 监听.push(cb); return () => {} },
   effect: (fn) => { const 摘 = fn(); return () => { try { 摘 && 摘() } catch {} } },
   webServer: { register: (o) => 路由.set(o.path, o.handler) },
   logger: { info: () => {} },
+  agents: { get: (id) => (String(id) === 'session-X' ? 假agent : undefined) },
+  sessions: { flush: async () => {} },
   get: () => undefined,
 }
 
@@ -136,6 +140,47 @@ await 路由.get('/dsh-qq-bridge/state')([], fakeRes)
 const 状态 = 存储[0]
 报('/state 回出配置', 状态 && 状态.ok === true && 状态.配置 && 状态.配置.总开关 === false, JSON.stringify(状态 && 状态.配置))
 报('/state 探到 NapCat 那个号', 状态 && 状态.NapCat状态 && 状态.NapCat状态.昵称 === '大肥鱼' && 状态.NapCat状态.用户 === 1265214128, JSON.stringify(状态 && 状态.NapCat状态))
+
+// ⑨ QQ → DSH：/receive 把她说的话转进目标会话（followup）
+const 收 = (body) => {
+  存储.length = 0
+  return new Promise((resolve) => {
+    路由.get('/dsh-qq-bridge/receive')([JSON.stringify(body)], fakeRes).then(() => resolve(存储[0]))
+  })
+}
+writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
+  总开关: true, 试运行: false, 目标会话: 'session-X', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
+}, null, 2), 'utf8')
+
+let 收到 = await 收({ text: '宝宝你在吗' })
+报('/receive：把她的话 followup 进会话', 收到 && 收到.ok === true && 转进的.length === 1, JSON.stringify(收到))
+if (转进的[0]) {
+  const m = 转进的[0]
+  报('/receive 消息形状：role=user + source.kind=qq + 正文对', m.role === 'user' && m.source && m.source.kind === 'qq' && m.content[0].text === '宝宝你在吗', JSON.stringify(m))
+}
+报('/receive 之后 DSH→QQ 那半也会把大肥鱼的回话发回 QQ（联动靠 session/event，不在这里再验）', true)
+
+// ⑩ 总开关关 → receive 拒绝
+writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
+  总开关: false, 试运行: false, 目标会话: 'session-X', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
+}, null, 2), 'utf8')
+const 之前收 = 转进的.length
+收到 = await 收({ text: '还开着吗' })
+报('/receive：总开关关 → 拒绝、不再 followup', 收到 && 收到.ok === false && 转进的.length === 之前收, JSON.stringify(收到))
+
+// ⑪ 空 text → 拒绝
+writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
+  总开关: true, 试运行: false, 目标会话: 'session-X', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
+}, null, 2), 'utf8')
+收到 = await 收({ text: '   ' })
+报('/receive：空 text → 拒绝', 收到 && 收到.ok === false, JSON.stringify(收到))
+
+// ⑫ 目标会话没活着 → 拒绝（session-Z 拿不到 agent）
+writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
+  总开关: true, 试运行: false, 目标会话: 'session-Z', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
+}, null, 2), 'utf8')
+收到 = await 收({ text: '在吗' })
+报('/receive：目标会话没活着 → 拒绝', 收到 && 收到.ok === false && String(收到.说).includes('没活着'), JSON.stringify(收到))
 
 rmSync(家, { recursive: true, force: true })
 console.log(`\n${挂了 === 0 ? '全部通过 ✅' : `有 ${挂了} 条没过 ❌`}`)
