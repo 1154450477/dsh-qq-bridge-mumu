@@ -43,11 +43,48 @@ node tests/宿主半边.mjs
 node tests/网页半边.mjs
 ```
 
-## 它依赖什么
+## 它依赖什么：一个 QQ 后端（NapCat 或 SnowLuma，二选一）
 
-只要一个东西：**NapCat**（就是「QQ 接口」那半，跑在本机，登 QQ、扫码都在它的网页 `http://127.0.0.1:6099`）。
+插件本身**不碰 QQ 协议**，它只会说 **OneBot 11 的 HTTP**。所以你要在本机跑一个「QQ 接口」程序，
+让插件通过 `http://127.0.0.1:3000` 跟它说话。
 
-- 桌面只留 NapCat + 本插件 + DSH，**BOT（Estrella）那套脑子可以完全不要了**。
+### 选哪个
+
+| 后端 | 说明 |
+|---|---|
+| [**NapCat**](https://github.com/NapNeko/NapCatQQ) | 本插件一直在用的这个，**已验证**。自带网页后台 `http://127.0.0.1:6099` 扫码登录 |
+| [**SnowLuma**](https://github.com/SnowLuma/SnowLuma) | 同一套 OneBot 11 HTTP 接口，接口对得上就能用；本插件**没有对它实测过** |
+
+### 插件实际用到的接口（换后端时照这个核对）
+
+```
+send_private_msg            发私聊
+send_group_msg              发群消息
+get_login_info              看登录的 QQ 是哪个（设置页显示"✓ 连着的 QQ"）
+get_friend_msg_history      收私聊（QQ → DSH）
+get_group_msg_history       收群消息（QQ → DSH）
+```
+
+只要你的后端把这 6 个接口开在 HTTP 上，插件就能用。
+
+### 装 NapCat 的步骤
+
+1. 从 [NapCat 的 Releases](https://github.com/NapNeko/NapCatQQ/releases) 下 Windows 版，解压到任意目录
+2. 双击启动，它会弹一个**网页后台**（默认 `http://127.0.0.1:6099`）
+3. 在网页里**扫码登录**你要用的 QQ 号
+4. 确认 **HTTP 服务**开着、端口是 `3000`（不是的话，在插件设置里把「NapCat 地址」改成你的）
+5. 回到 DSH → 设置 → 通到 QQ → 点「测一下」，应该显示 `✓ 连着的 QQ：<昵称>（<号>）`
+
+### 装 SnowLuma 的步骤
+
+同样思路：跑起来 → 登录 QQ → **开启 OneBot 11 的 HTTP 服务** → 端口对上（或改插件里的地址）。
+具体菜单名以它的文档为准：[SnowLuma 仓库](https://github.com/SnowLuma/SnowLuma)。
+
+> ⚠️ 只有 **HTTP** 模式够用（插件不连 WebSocket）。开了 WS 但没开 HTTP 的话，插件连不上。
+
+### 其它
+
+- 桌面只留这个后端 + 本插件 + DSH，**BOT（Estrella）那套脑子可以完全不要了**。
 - `/receive` 路由还留着，是想用别的方式（比如另一个程序）把 QQ 消息灌进来的备用入口，不依赖它也能跑。
 
 ## 改动记录
