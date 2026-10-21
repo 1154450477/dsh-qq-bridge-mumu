@@ -36,7 +36,7 @@ globalThis.fetch = async (url, 选项) => {
   const 体 = JSON.parse((选项 && 选项.body) || '{}')
   const u = String(url)
   if (u.includes('get_login_info')) {
-    return { json: async () => ({ status: 'ok', retcode: 0, data: { user_id: 1265214128, nickname: '大肥鱼' } }) }
+    return { json: async () => ({ status: 'ok', retcode: 0, data: { user_id: 10001, nickname: '测试号' } }) }
   }
   if (u.includes('get_friend_msg_history')) {
     return {
@@ -54,7 +54,7 @@ const 模 = await import(new URL('../lib/host.js', import.meta.url).href + '?v='
 
 // ---------- 纯函数 ----------
 报('名字导出', 模.name === 'qq-bridge', 模.name)
-报('inject = agents + sessions + sessionTitle + webServer + timer', Array.isArray(模.inject) && 模.inject.join() === 'agents,sessions,sessionTitle,webServer,timer')
+报('inject = agents + sessions + sessionTitle + webServer + timer + workspaceRegistry', Array.isArray(模.inject) && 模.inject.join() === 'agents,sessions,sessionTitle,webServer,timer,workspaceRegistry')
 
 const 块 = (type, text) => ({ type, text })
 const 正文 = 模.提取正文({ content: [块('reasoning', '想一下'), 块('text', '第一条\n第二条'), 块('image', ''), 块('text', '第三条')] })
@@ -153,7 +153,7 @@ const fakeRes = { setHeader: () => {}, end: (s) => { 存储.push(JSON.parse(s)) 
 await 路由.get('/dsh-qq-bridge/state')([], fakeRes)
 const 状态 = 存储[0]
 报('/state 回出配置', 状态 && 状态.ok === true && 状态.配置 && 状态.配置.总开关 === false, JSON.stringify(状态 && 状态.配置))
-报('/state 探到 NapCat 那个号', 状态 && 状态.NapCat状态 && 状态.NapCat状态.昵称 === '大肥鱼' && 状态.NapCat状态.用户 === 1265214128, JSON.stringify(状态 && 状态.NapCat状态))
+报('/state 探到 NapCat 那个号', 状态 && 状态.NapCat状态 && 状态.NapCat状态.昵称 === '测试号' && 状态.NapCat状态.用户 === 10001, JSON.stringify(状态 && 状态.NapCat状态))
 
 // ⑨ QQ → DSH：/receive 把她说的话转进目标会话（followup）
 const 收 = (body) => {
@@ -172,7 +172,7 @@ if (转进的[0]) {
   const m = 转进的[0]
   报('/receive 消息形状：role=user + source.kind=qq + 正文对', m.role === 'user' && m.source && m.source.kind === 'qq' && m.content[0].text === '宝宝你在吗', JSON.stringify(m))
 }
-报('/receive 之后 DSH→QQ 那半也会把大肥鱼的回话发回 QQ（联动靠 session/event，不在这里再验）', true)
+报('/receive 之后 DSH→QQ 那半也会把伙伴的回话发回 QQ（联动靠 session/event，不在这里再验）', true)
 
 // ⑩ 总开关关 → receive 拒绝
 writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
