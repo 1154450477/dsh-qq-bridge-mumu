@@ -15,6 +15,57 @@
 - 发/收都只走这个 QQ 后端的 HTTP 接口（默认 `127.0.0.1:3000`）。
 - 安全默认：**总开关 = 关、试运行 = 开** —— 不手动打开，一句都不会真的发到 QQ。
 
+## 装
+
+> ⭐ 最省事的一条：把这个仓库的地址贴给你自己的 DSH，说「**帮我装这个插件**」。
+
+### 一、在 DSH 里装（推荐）
+
+打开 **设置 → 插件 → 安装**，把这一行填进去：
+
+```
+github:Yuuyuko-uu/dsh-qq-bridge
+```
+
+或者命令行（`--profile` 照你平时那个写，桌面端一般 `desktop`，网页端 `web`）：
+
+```bash
+dsh plugin --profile desktop add github:Yuuyuko-uu/dsh-qq-bridge
+```
+
+装完**重启一次 DSH**，然后进 **设置 → 通到 QQ**。
+
+> 光装插件还不够：还得有一个 QQ 后端（默认 `127.0.0.1:3000`），见下面「它依赖什么」那一节。
+
+### 二、装完起不来？先看这个
+
+如果 DSH 弹「The application could not start」，错误里有 `Unexpected token '﻿'`、`is not valid JSON`、
+`readProfileManifest` —— 那是 profile 的 `package.json` 被存成了 **UTF-8 带 BOM**。
+**跟插件无关**：文件内容都是对的，只是开头多了三个看不见的字节，DSH 读它就崩。
+
+先确认（`desktop` 换成你自己的档名）：
+
+```powershell
+Format-Hex "$env:USERPROFILE\.dsh\profiles\desktop\package.json" -Count 3
+```
+
+开头是 `EF BB BF` = 有 BOM。修（存成无 BOM）：
+
+```powershell
+$p = "$env:USERPROFILE\.dsh\profiles\desktop\package.json"
+[System.IO.File]::WriteAllText($p, [System.IO.File]::ReadAllText($p), (New-Object System.Text.UTF8Encoding($false)))
+```
+
+然后重启 DSH 就好，**数据一点没丢**。
+
+实在进不去时，那个错误框里的
+**「Disable third-party plugins, back up profile patch, and restart」**
+能先起来（它先备份再停插件），再一个个开回去定位。
+
+> ⚠️ 手动改 profile 里的文件，一律存 **UTF-8 无 BOM**。让 AI 帮你改时，别让它用
+> `Set-Content -Encoding UTF8` 或 `Out-File -Encoding utf8`（Windows 自带的这两个默认**带 BOM**），
+> 用上面那行 .NET 的写法就不会。
+
 ## 配置（设置页里点就行，不用改文件）
 
 **设置 → 通到 QQ**，从上到下：
