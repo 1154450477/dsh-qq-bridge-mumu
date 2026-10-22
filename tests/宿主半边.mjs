@@ -72,6 +72,14 @@ const 正文 = 模.提取正文({ content: [块('reasoning', '想一下'), 块('
   const 段 = 模.图片段('AAA')
   return 段.type === 'image' && 段.data.file === 'base64://AAA'
 })())
+报('抠正文图：markdown 图抠出来，正文留干净的', (() => {
+  const r = 模.抠正文图('看图！\n![小肥鱼](_stickers/feiyu-test.webp)\n好看吧')
+  return r.净文字 === '看图！\n\n好看吧' && r.图.length === 1 && r.图[0].kind === 'path' && r.图[0].value === '_stickers/feiyu-test.webp'
+})())
+报('抠正文图：网络图单独算一类', (() => {
+  const r = 模.抠正文图('![](https://x.com/a.png)纯图')
+  return r.净文字 === '纯图' && r.图.length === 1 && r.图[0].kind === 'url'
+})())
 
 // ---------- 假 ctx ----------
 const 监听 = []
