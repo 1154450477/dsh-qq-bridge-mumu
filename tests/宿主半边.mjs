@@ -54,12 +54,24 @@ const 模 = await import(new URL('../lib/host.js', import.meta.url).href + '?v='
 
 // ---------- 纯函数 ----------
 报('名字导出', 模.name === 'qq-bridge', 模.name)
-报('inject = agents + sessions + sessionTitle + webServer + timer + workspaceRegistry', Array.isArray(模.inject) && 模.inject.join() === 'agents,sessions,sessionTitle,webServer,timer,workspaceRegistry')
+报('inject = agents + sessions + sessionTitle + webServer + timer + workspaceRegistry + attachments', Array.isArray(模.inject) && 模.inject.join() === 'agents,sessions,sessionTitle,webServer,timer,workspaceRegistry,attachments')
 
 const 块 = (type, text) => ({ type, text })
 const 正文 = 模.提取正文({ content: [块('reasoning', '想一下'), 块('text', '第一条\n第二条'), 块('image', ''), 块('text', '第三条')] })
 报('提取正文：只收 text，reasoning/image 都不要', 正文 === '第一条\n第二条\n第三条', JSON.stringify(正文))
 报('提取正文：没有 text → 空串', 模.提取正文({ content: [块('reasoning', 'x')] }) === '')
+
+// ⭐ 2026-10-22 图片
+报('提取图块：只挑带 attachment 的 image 块', 模.提取图块({ content: [
+  { type: 'text', text: '看图' },
+  { type: 'image', attachment: { attachmentId: 'sha256:aa' } },
+  { type: 'image' }, // 没 attachment：不算（发不出去）
+  { type: 'file', attachment: { attachmentId: 'sha256:bb' } },
+] }).length === 1)
+报('图片段：base64 直接塞进 OneBot image 段', (() => {
+  const 段 = 模.图片段('AAA')
+  return 段.type === 'image' && 段.data.file === 'base64://AAA'
+})())
 
 // ---------- 假 ctx ----------
 const 监听 = []
