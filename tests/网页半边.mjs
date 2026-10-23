@@ -1,5 +1,5 @@
 // 「通到 QQ」网页半边冒烟测试 —— 用假的 React / 假的 slots 把设置页渲染成一棵对象树。
-// 验：模块 id、inject、挂到 settings.section（id=qq-bridge）、关键元素都渲染出来、不抛错。
+// 验：模块 id、inject、挂到 settings.section（id=qq-bridge-mumu）、关键元素都渲染出来、不抛错。
 // 跑法： node tests/网页半边.mjs
 
 let 捕获 = null
@@ -41,7 +41,7 @@ const exports = 捕获.factory(假require)
 let 挂了 = 0
 const 报 = (标签, 过, 详情) => { if (!过) 挂了++; console.log(`${过 ? 'PASS' : 'FAIL'}  ${标签}${详情 ? '  :: ' + 详情 : ''}`) }
 
-报('模块 id = dsh-qq-bridge', 捕获.id === 'dsh-qq-bridge', 捕获.id)
+报('模块 id = dsh-qq-bridge', 捕获.id === 'dsh-qq-bridge-mumu', 捕获.id)
 报('inject 只依赖 slots', Array.isArray(exports.inject) && exports.inject.join() === 'slots')
 
 let 注册 = null
@@ -51,7 +51,7 @@ const slots = {
   register: (d, c) => { 注册 = d; 组件 = c; return () => {} },
 }
 exports.apply({ get: (n) => (n === 'slots' ? slots : undefined) })
-报('挂到 settings.section，id = qq-bridge', 注册 !== null && 注册.id === 'qq-bridge' && 注册.name === 'settings.section', JSON.stringify(注册))
+报('挂到 settings.section，id = qq-bridge', 注册 !== null && 注册.id === 'qq-bridge-mumu' && 注册.name === 'settings.section', JSON.stringify(注册))
 
 // 预先填好「已经读到状态」的第一格（体），这样不用等 useEffect 拉数据，组件一次渲染就出整页
 const 初始态 = {

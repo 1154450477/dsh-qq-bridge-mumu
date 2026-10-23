@@ -16,7 +16,7 @@ process.env.DSH_HOME = 家
 
 // 先把配置写好（总开关开、真发、私聊 123）
 writeFileSync(
-  join(家, 'qq-bridge-config.json'),
+  join(家, 'qq-bridge-mumu-config.json'),
   JSON.stringify({
     总开关: true, 试运行: false, 目标会话: 'session-X', 私聊QQ: '123', 群号: '',
     转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
@@ -53,7 +53,7 @@ globalThis.fetch = async (url, 选项) => {
 const 模 = await import(new URL('../lib/host.js', import.meta.url).href + '?v=' + Date.now())
 
 // ---------- 纯函数 ----------
-报('名字导出', 模.name === 'qq-bridge', 模.name)
+报('名字导出', 模.name === 'qq-bridge-mumu', 模.name)
 报('inject = agents + sessions + sessionTitle + webServer + timer + workspaceRegistry + attachments', Array.isArray(模.inject) && 模.inject.join() === 'agents,sessions,sessionTitle,webServer,timer,workspaceRegistry,attachments')
 
 const 块 = (type, text) => ({ type, text })
@@ -147,7 +147,7 @@ await new Promise((r) => setTimeout(r, 20))
 报('不是目标会话不转发', 发了.length === 之前5)
 
 // ⑥ 试运行开 → fetch 不被打
-writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
+writeFileSync(join(家, 'qq-bridge-mumu-config.json'), JSON.stringify({
   总开关: true, 试运行: true, 目标会话: 'session-X', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
 }, null, 2), 'utf8')
 const 之前6 = 发了.length
@@ -157,7 +157,7 @@ await new Promise((r) => setTimeout(r, 20))
 报('试运行开 → 只记账不真发', 发了.length === 之前6)
 
 // ⑦ 总开关关 → fetch 不被打
-writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
+writeFileSync(join(家, 'qq-bridge-mumu-config.json'), JSON.stringify({
   总开关: false, 试运行: false, 目标会话: 'session-X', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
 }, null, 2), 'utf8')
 const 之前7 = 发了.length
@@ -170,7 +170,7 @@ await new Promise((r) => setTimeout(r, 20))
 const 存储 = []
 let 回复 = null
 const fakeRes = { setHeader: () => {}, end: (s) => { 存储.push(JSON.parse(s)) } }
-await 路由.get('/dsh-qq-bridge/state')([], fakeRes)
+await 路由.get('/dsh-qq-bridge-mumu/state')([], fakeRes)
 const 状态 = 存储[0]
 报('/state 回出配置', 状态 && 状态.ok === true && 状态.配置 && 状态.配置.总开关 === false, JSON.stringify(状态 && 状态.配置))
 报('/state 探到 NapCat 那个号', 状态 && 状态.NapCat状态 && 状态.NapCat状态.昵称 === '测试号' && 状态.NapCat状态.用户 === 10001, JSON.stringify(状态 && 状态.NapCat状态))
@@ -179,10 +179,10 @@ const 状态 = 存储[0]
 const 收 = (body) => {
   存储.length = 0
   return new Promise((resolve) => {
-    路由.get('/dsh-qq-bridge/receive')([JSON.stringify(body)], fakeRes).then(() => resolve(存储[0]))
+    路由.get('/dsh-qq-bridge-mumu/receive')([JSON.stringify(body)], fakeRes).then(() => resolve(存储[0]))
   })
 }
-writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
+writeFileSync(join(家, 'qq-bridge-mumu-config.json'), JSON.stringify({
   总开关: true, 试运行: false, 目标会话: 'session-X', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
 }, null, 2), 'utf8')
 
@@ -195,7 +195,7 @@ if (转进的[0]) {
 报('/receive 之后 DSH→QQ 那半也会把伙伴的回话发回 QQ（联动靠 session/event，不在这里再验）', true)
 
 // ⑩ 总开关关 → receive 拒绝
-writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
+writeFileSync(join(家, 'qq-bridge-mumu-config.json'), JSON.stringify({
   总开关: false, 试运行: false, 目标会话: 'session-X', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
 }, null, 2), 'utf8')
 const 之前收 = 转进的.length
@@ -203,47 +203,57 @@ const 之前收 = 转进的.length
 报('/receive：总开关关 → 拒绝、不再 followup', 收到 && 收到.ok === false && 转进的.length === 之前收, JSON.stringify(收到))
 
 // ⑪ 空 text → 拒绝
-writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
+writeFileSync(join(家, 'qq-bridge-mumu-config.json'), JSON.stringify({
   总开关: true, 试运行: false, 目标会话: 'session-X', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
 }, null, 2), 'utf8')
 收到 = await 收({ text: '   ' })
 报('/receive：空 text → 拒绝', 收到 && 收到.ok === false, JSON.stringify(收到))
 
 // ⑫ 目标会话没活着 → 拒绝（session-Z 拿不到 agent）
-writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
+writeFileSync(join(家, 'qq-bridge-mumu-config.json'), JSON.stringify({
   总开关: true, 试运行: false, 目标会话: 'session-Z', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
 }, null, 2), 'utf8')
 收到 = await 收({ text: '在吗' })
 报('/receive：目标会话没活着 → 拒绝', 收到 && 收到.ok === false && String(收到.说).includes('没活着'), JSON.stringify(收到))
 
 // ⑬ 轮询收消息（QQ → DSH 这半的正式入口，不赖 BOT）
-writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
+writeFileSync(join(家, 'qq-bridge-mumu-config.json'), JSON.stringify({
   总开关: true, 试运行: false, 目标会话: 'session-X', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
 }, null, 2), 'utf8')
+// 凑批窗口是 5 秒（lib/host.js:1070 凑批窗口）——别死等 3.6 秒，等到真的转进来为止
+const 等转进 = async (期望数, 上限毫秒 = 9000) => {
+  const 起点 = Date.now()
+  while (Date.now() - 起点 < 上限毫秒) {
+    if (转进的.length === 期望数) return true
+    await new Promise((r) => setTimeout(r, 200))
+  }
+  return 转进的.length === 期望数
+}
+
 const 之前转 = 转进的.length
 私聊消息文本 = '宝宝你在吗'
 私聊消息id = 9001
 私聊消息时间 = Math.floor(Date.now() / 1000) + 100
 await 轮询回调()
-await new Promise((r) => setTimeout(r, 20))
+await 等转进(之前转 + 1)
 报('轮询收消息 → 她新发的私聊被 followup 进 DSH', 转进的.length === 之前转 + 1 && JSON.stringify(转进的.at(-1).content[0].text).includes('宝宝你在吗'), JSON.stringify(转进的.at(-1)))
 // 再跑一次同一条：不该重复转
 私聊消息文本 = '宝宝你在吗'
 私聊消息id = 9001
 私聊消息时间 = Math.floor(Date.now() / 1000) + 101
 await 轮询回调()
-await new Promise((r) => setTimeout(r, 20))
+await new Promise((r) => setTimeout(r, 6200))
 报('轮询：同一条消息不重复转', 转进的.length === 之前转 + 1, '转进条数=' + 转进的.length)
 
 // ⑭ 轮询：总开关关 → 不转
-writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
+writeFileSync(join(家, 'qq-bridge-mumu-config.json'), JSON.stringify({
   总开关: false, 试运行: false, 目标会话: 'session-X', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
 }, null, 2), 'utf8')
 私聊消息文本 = '还开着吗'
 私聊消息id = 9002
 私聊消息时间 = Math.floor(Date.now() / 1000) + 120
 await 轮询回调()
-await new Promise((r) => setTimeout(r, 20))
+await new Promise((r) => setTimeout(r, 6200))
 报('轮询：总开关关 → 不转', 转进的.length === 之前转 + 1, '转进条数=' + 转进的.length)
 
 rmSync(家, { recursive: true, force: true })

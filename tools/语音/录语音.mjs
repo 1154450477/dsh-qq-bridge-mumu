@@ -19,6 +19,19 @@ const 模式名 = 模式 === 2 ? '完整发（录完再发一条）' : '切断�
 const QQ后端 = process.env.QQ_BACKEND || 'http://127.0.0.1:3000'
 // 语音发给谁（QQ 号）。不填就只录不发，方便先试通。
 const 私聊QQ = process.env.QQ_VOICE_TARGET || ''
+// OneBot 的 access_token：后端开了口令就必须带（Authorization: Bearer），否则一律 401。
+// 取值顺序：环境变量 QQ_TOKEN → QQ 桥自己的配置文件（口令字段）→ 不带。
+function 从桥配置取口令() {
+  try {
+    const p = process.env.QQ_BRIDGE_CONFIG || path.join(os.homedir(), '.dsh', 'qq-bridge-mumu-config.json')
+    const j = JSON.parse(fs.readFileSync(p, 'utf8'))
+    return String(j && j.口令 ? j.口令 : '').trim()
+  } catch (e) {
+    return ''
+  }
+}
+const QQ口令 = String(process.env.QQ_TOKEN || '').trim() || 从桥配置取口令()
+const 认证头 = () => (QQ口令 ? { authorization: 'Bearer ' + QQ口令 } : {})
 
 // 录音脚本：默认跟本文件放同一目录
 const 录音脚本 = process.env.RECORDER_PS1 || path.join(import.meta.dirname, '录音回环.ps1')
@@ -217,7 +230,7 @@ async function 发单段(wav) {
     const url = 'file:///' + wav.replace(/\\/g, '/')
     const r = await fetch(`${QQ后端}/send_private_msg`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...认证头() },
       body: JSON.stringify({ user_id: Number(私聊QQ), message: [{ type: 'record', data: { file: url } }] }),
     })
     const j = await r.json().catch(() => null)

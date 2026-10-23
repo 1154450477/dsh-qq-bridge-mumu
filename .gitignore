@@ -3,3 +3,8 @@ node_modules/
 .DS_Store
 Thumbs.db
 开发者备忘.md
+__pycache__/
+*.pyc
+*.bak-*
+.cache/
+tools/models/
