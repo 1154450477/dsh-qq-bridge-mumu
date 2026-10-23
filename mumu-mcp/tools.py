@@ -37,7 +37,7 @@ DEFAULTS = {
     "grid_max_width": 2000,
     "grid_label_frames": True,
     "daily_play_limit_minutes": 0,
-    "mode_default_minutes": 30,
+    "mode_default_minutes": 10, # 默认玩 10 分钟（2026-10-23 主人定的）
     "tool_call_timeout_sec": 180,
     "control_port": 8791,
     "dsh_http_url": "http://127.0.0.1:3080",
@@ -487,7 +487,7 @@ async def h_play(args, svc: Service):
     goal = str(args.get("goal") or "").strip()
     if not goal:
         goal = 选目标(svc)
-    minutes = svc._float(args, "minutes", svc.cfg.get("mode_default_minutes") or 30, 1, 180)
+    minutes = svc._float(args, "minutes", svc.cfg.get("mode_default_minutes") or 10, 1, 180)
     limit = int(svc.cfg.get("daily_play_limit_minutes") or 0)
     used = svc.state.daily_minutes()
     if limit and used >= limit:
