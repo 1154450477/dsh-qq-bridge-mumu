@@ -14,7 +14,7 @@ const 家 = mkdtempSync(join(tmpdir(), 'qq-bridge-手机-'))
 process.env.DSH_HOME = 家
 
 const 写配置 = (补丁) => {
-  writeFileSync(join(家, 'qq-bridge-mumu-config.json'), JSON.stringify({
+  writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
     总开关: true, 试运行: false, 目标会话: 'session-X', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false,
     NapCat: 'http://127.0.0.1:3000', MuMu控制口: 'http://127.0.0.1:8791',
     忙时入队: true, 忙时强制回话: false,
@@ -110,7 +110,7 @@ const 调 = async (路径, body) => {
 写配置({ 挂起回执冷却秒: 0 })
 const 转前 = 转进的.length
 const 发前 = 发了.length
-let 收 = await 调('/dsh-qq-bridge-mumu/receive', { text: '在干嘛呢' })
+let 收 = await 调('/dsh-qq-bridge/receive', { text: '在干嘛呢' })
 报('玩手机时来消息 → 已挂起（POST /pending）', 控口记录.some((x) => x.路径 === '/pending'), JSON.stringify(控口记录))
 报('玩手机时来消息 → 不 followup（不插进她这一轮）', 转进的.length === 转前, '转进条数=' + 转进的.length)
 报('玩手机时来消息 → 回执发到 QQ', 发了.length === 发前 + 1 && JSON.stringify(发了.at(-1).体.message[0].data.text).includes('我在玩手机'), JSON.stringify(发了.at(-1) && 发了.at(-1).体))
@@ -119,7 +119,7 @@ let 收 = await 调('/dsh-qq-bridge-mumu/receive', { text: '在干嘛呢' })
 // ② 停手关键词「别玩了」→ 收手 + 回「好，手机收起来了。」
 const 控前 = 控口记录.length
 const 发前2 = 发了.length
-收 = await 调('/dsh-qq-bridge-mumu/receive', { text: '别玩了' })
+收 = await 调('/dsh-qq-bridge/receive', { text: '别玩了' })
 报('说「别玩了」→ 调了 /exit 收手', 控口记录.slice(控前).some((x) => x.路径 === '/exit'), JSON.stringify(控口记录.slice(控前)))
 报('说「别玩了」→ 回「好，手机收起来了。」', 发了.length === 发前2 + 1 && JSON.stringify(发了.at(-1).体.message[0].data.text).includes('手机收起来了'), JSON.stringify(发了.at(-1) && 发了.at(-1).体))
 
@@ -127,10 +127,10 @@ const 发前2 = 发了.length
 在玩手机 = true
 写配置({ 挂起回执冷却秒: 60 })
 const 控前3 = 控口记录.length
-await 调('/dsh-qq-bridge-mumu/receive', { text: '停' })
+await 调('/dsh-qq-bridge/receive', { text: '停' })
 报('整句「停」→ 收手', 控口记录.slice(控前3).some((x) => x.路径 === '/exit'), JSON.stringify(控口记录.slice(控前3)))
 const 控前4 = 控口记录.length
-await 调('/dsh-qq-bridge-mumu/receive', { text: '停下来' })
+await 调('/dsh-qq-bridge/receive', { text: '停下来' })
 报('「停下来」不算停手（不误伤）', !控口记录.slice(控前4).some((x) => x.路径 === '/exit'), JSON.stringify(控口记录.slice(控前4)))
 
 // ④ steer 开关开着 → 顺带 steer 一下
@@ -138,7 +138,7 @@ await 调('/dsh-qq-bridge-mumu/receive', { text: '停下来' })
 假状态 = 'running'
 写配置({ 忙时强制回话: true })
 const steer前 = steer的.length
-await 调('/dsh-qq-bridge-mumu/receive', { text: '诶' })
+await 调('/dsh-qq-bridge/receive', { text: '诶' })
 报('强制回话开着 → steer 被调用', steer的.length === steer前 + 1, 'steer 条数=' + steer的.length)
 写配置({ 忙时强制回话: false })
 
@@ -147,29 +147,29 @@ await 调('/dsh-qq-bridge-mumu/receive', { text: '诶' })
 假状态 = 'idle'
 写配置({})
 const 转前5 = 转进的.length
-收 = await 调('/dsh-qq-bridge-mumu/receive', { text: '在吗' })
+收 = await 调('/dsh-qq-bridge/receive', { text: '在吗' })
 报('没在玩手机 → 照旧 followup', 转进的.length === 转前5 + 1, '转进条数=' + 转进的.length)
 报('没在玩手机 → 路由说转进去了', 收 && 收.ok === true && String(收.说).includes('转进'), JSON.stringify(收))
 
 // ⑥ /say 直发通道
 const 发前6 = 发了.length
-收 = await 调('/dsh-qq-bridge-mumu/say', { text: '我玩完啦' })
+收 = await 调('/dsh-qq-bridge/say', { text: '我玩完啦' })
 报('/say → 真发到 QQ', 收 && 收.ok === true && 发了.length === 发前6 + 1, JSON.stringify(收))
 报('/say → 内容对', JSON.stringify(发了.at(-1).体.message[0].data.text) === JSON.stringify('我玩完啦'), JSON.stringify(发了.at(-1).体))
 
 // ⑦ /turn 起回合
 const 转前7 = 转进的.length
-收 = await 调('/dsh-qq-bridge-mumu/turn', { text: '去玩吧', mode: 'followup' })
+收 = await 调('/dsh-qq-bridge/turn', { text: '去玩吧', mode: 'followup' })
 报('/turn → 起了新回合', 收 && 收.ok === true && 转进的.length === 转前7 + 1, JSON.stringify(收))
 
 // ⑧ /agent-state 忙闲 + 手机状态
 在玩手机 = true
 假状态 = 'running'
-收 = await 调('/dsh-qq-bridge-mumu/agent-state', {})
+收 = await 调('/dsh-qq-bridge/agent-state', {})
 报('/agent-state → 回忙闲 + 手机状态', 收 && 收.ok === true && 收.status === 'running' && 收.手机模式 === true, JSON.stringify(收))
 
 // ⑨ /stop-phone 手动收手
-收 = await 调('/dsh-qq-bridge-mumu/stop-phone', {})
+收 = await 调('/dsh-qq-bridge/stop-phone', {})
 报('/stop-phone → 收手成功', 收 && 收.ok === true, JSON.stringify(收))
 报('/stop-phone → 之后控制口说没在玩了', 在玩手机 === false, '在玩手机=' + 在玩手机)
 
@@ -179,7 +179,7 @@ const 转前7 = 转进的.length
 写配置({ 忙时入队: false })
 const 控前10 = 控口记录.length
 const 转前10 = 转进的.length
-await 调('/dsh-qq-bridge-mumu/receive', { text: '在吗' })
+await 调('/dsh-qq-bridge/receive', { text: '在吗' })
 报('忙时入队关着 → 不挂起', !控口记录.slice(控前10).some((x) => x.路径 === '/pending'), JSON.stringify(控口记录.slice(控前10)))
 报('忙时入队关着 → 照旧 followup', 转进的.length === 转前10 + 1, '转进条数=' + 转进的.length)
 
@@ -190,7 +190,7 @@ await 调('/dsh-qq-bridge-mumu/receive', { text: '在吗' })
 写配置({ 挂起回执冷却秒: 0 })
 const 控前11 = 控口记录.length
 const 转前11 = 转进的.length
-await 调('/dsh-qq-bridge-mumu/receive', { text: '在吗' })
+await 调('/dsh-qq-bridge/receive', { text: '在吗' })
 报('模式关了但还在玩（playing）→ 仍然挂起', 控口记录.slice(控前11).some((x) => x.路径 === '/pending'), JSON.stringify(控口记录.slice(控前11)))
 报('模式关了但还在玩（playing）→ 不排进 DSH 队列', 转进的.length === 转前11, '转进条数=' + 转进的.length)
 刚玩 = false
@@ -212,7 +212,7 @@ await new Promise((r) => setTimeout(r, 200))
 写配置({ 挂起回执冷却秒: 0 })
 const 控前13 = 控口记录.length
 const 发前13 = 发了.length
-收 = await 调('/dsh-qq-bridge-mumu/receive', { text: '暂停一下' })
+收 = await 调('/dsh-qq-bridge/receive', { text: '暂停一下' })
 const 退13 = 控口记录.slice(控前13).find((x) => x.路径 === '/exit')
 报('说「暂停一下」→ 调了 /exit', !!退13, JSON.stringify(控口记录.slice(控前13)))
 报('说「暂停一下」→ 带 pause=true（手机不关）', !!退13 && 退13.体.pause === true, JSON.stringify(退13 && 退13.体))
@@ -222,7 +222,7 @@ const 退13 = 控口记录.slice(控前13).find((x) => x.路径 === '/exit')
 在玩手机 = true
 const 控前14 = 控口记录.length
 const 发前14 = 发了.length
-收 = await 调('/dsh-qq-bridge-mumu/receive', { text: '别玩了' })
+收 = await 调('/dsh-qq-bridge/receive', { text: '别玩了' })
 const 退14 = 控口记录.slice(控前14).find((x) => x.路径 === '/exit')
 报('说「别玩了」→ /exit 不带 pause（顺手关手机）', !!退14 && !退14.体.pause, JSON.stringify(退14 && 退14.体))
 报('说「别玩了」→ 回执里说手机也关上了', 发了.length === 发前14 + 1 && JSON.stringify(发了.at(-1).体.message[0].data.text).includes('关上了'), JSON.stringify(发了.at(-1) && 发了.at(-1).体))

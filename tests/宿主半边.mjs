@@ -86,7 +86,7 @@ const 监听 = []
 const 路由 = new Map()
 const 转进的 = []
 let 轮询回调 = null
-const 假agent = { followup: (m) => 转进的.push(m), session: { id: 'session-X' } }
+const 假agent = { followup: (m) => 转进的.push(m), session: { id: 'session-X' }, status: 'idle', 取消数: 0, cancel: () => { 假agent.取消数++ } }
 const ctx = {
   on: (名字, cb) => { if (名字 === 'session/event') 监听.push(cb); return () => {} },
   effect: (fn) => { const 摘 = fn(); return () => { try { 摘 && 摘() } catch {} } },
@@ -255,6 +255,43 @@ writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
 await 轮询回调()
 await new Promise((r) => setTimeout(r, 6200))
 报('轮询：总开关关 → 不转', 转进的.length === 之前转 + 1, '转进条数=' + 转进的.length)
+
+// ⑮ 长回合保护（0.4.6）：回合 <60 秒 → 照旧取消合并；≥60 秒 → 攒住不取消；turn/end → 冲刷转进
+writeFileSync(join(家, 'qq-bridge-config.json'), JSON.stringify({
+  总开关: true, 试运行: false, 目标会话: 'session-X', 私聊QQ: '123', 群号: '', 转私聊: true, 转群: false, NapCat: 'http://127.0.0.1:3000',
+}, null, 2), 'utf8')
+
+// —— A. 年轻回合（<60s）：照旧取消旧回合、合并重开 ——
+假agent.status = 'running'
+监听[0](会话, { type: 'turn/start', data: { turn: 21 } })   // 她刚开的回合
+const A前 = 转进的.length
+私聊消息文本 = '插话一'
+私聊消息id = 9100
+私聊消息时间 = Math.floor(Date.now() / 1000) + 200
+await 轮询回调()
+await new Promise((r) => setTimeout(r, 3400))   // 防抖窗口 3 秒后转一批
+报('长回合保护：年轻回合来新消息 → 照旧取消合并', 假agent.取消数 === 1 && 转进的.length === A前 + 1, `取消=${假agent.取消数} 转进=${转进的.length - A前}`)
+
+// —— B. 长回合（≥60s）：不取消，消息留在缓冲里 ——
+监听[0](会话, { type: 'turn/start', data: { turn: 22 } })   // 真·当前时刻开的回合
+const B前 = 转进的.length
+const B取消前 = 假agent.取消数
+const 真钟 = Date.now
+Date.now = () => 真钟() + 70000   // 把钟拨快 70 秒：在她看来这轮已经想了 70 秒
+私聊消息文本 = '插话二'
+私聊消息id = 9101
+私聊消息时间 = Math.floor(真钟() / 1000) + 300
+await 轮询回调()
+await new Promise((r) => setTimeout(r, 150))
+Date.now = 真钟
+报('长回合保护：≥60 秒的长回合 → 不取消、消息攒住', 假agent.取消数 === B取消前 && 转进的.length === B前, `取消=${假agent.取消数 - B取消前} 转进=${转进的.length - B前}`)
+
+// —— C. 她回合结束 → 攒着的消息冲刷转进 ——
+假agent.status = 'idle'
+监听[0](会话, { type: 'turn/end', data: { turn: 22, reason: { kind: 'completed' } } })
+await new Promise((r) => setTimeout(r, 3600))   // 冲刷口先等 3 秒防抖窗口
+报('长回合保护：回合结束 → 攒着的消息自动转进', 转进的.length === B前 + 1 && JSON.stringify(转进的.at(-1).content[0].text || '').includes('插话二'), JSON.stringify(转进的.at(-1)))
+假agent.status = 'idle'
 
 rmSync(家, { recursive: true, force: true })
 console.log(`\n${挂了 === 0 ? '全部通过 ✅' : `有 ${挂了} 条没过 ❌`}`)
