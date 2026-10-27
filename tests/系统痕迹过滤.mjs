@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs"
-const src = readFileSync("D:/EX/dsh/大肥鱼项目/.tmp-dshlaoshi/host.patched.js", "utf8")
+// 0.5.6：改成读线上装载本体，测的是真在跑的那份（原来读冻结快照，测不到新代码）
+const src = readFileSync("C:/Users/aauv/.dsh/profiles/web/node_modules/dsh-qq-bridge-mumu/lib/host.js", "utf8")
 const 名字 = "export function 滤系统痕迹"
 const 起点 = src.indexOf(名字)
 if (起点 < 0) { console.log("EXTRACT_FAIL"); process.exit(1) }
@@ -31,5 +32,14 @@ const 报 = (名, 过, 详) => { if (!过) 挂++; console.log((过 ? "PASS" : "F
 报("痕迹行删后多空行压1空行", 滤系统痕迹("第一段" + String.fromCharCode(10,10,10) + "系统提示：x" + String.fromCharCode(10,10,10) + "第二段") === "第一段" + String.fromCharCode(10,10) + "第二段")
 报("windows 换行也能滤", 滤系统痕迹("正文", String.fromCharCode(13) + String.fromCharCode(10) + "系统提示：y") === "正文")
 
-console.log(挂 === 0 ? "ALL PASS (18)" : "FAILED " + 挂)
-process.exit(挂 === 0 ? 0 : 1)
+// ---- 0.5.6：运行时提醒标记（超时汇报 / QQ 留言）----
+const S = String.fromCharCode(0x2063)
+const 标 = S + "[[桥提醒]] "
+const NL = String.fromCharCode(10)
+报("带标记整条复述 -> null", 滤系统痕迹(标 + "系统提示：这一轮已经想了一分多钟") === null)
+报("正文 + 标记行 -> 只留正文", 滤系统痕迹("她在查了" + NL + 标 + "系统提示：这一轮") === "她在查了")
+报("只剩标记 -> null", 滤系统痕迹(标) === null)
+报("纯不可见符行 -> null", 滤系统痕迹(S) === null)
+报("防误伤：说「系统提示」四个字", 滤系统痕迹("主人说系统提示这四个字挺好笑") === "主人说系统提示这四个字挺好笑")
+
+console.log(挂 === 0 ? "ALL PASS (23)" : "FAILED " + 挂)
